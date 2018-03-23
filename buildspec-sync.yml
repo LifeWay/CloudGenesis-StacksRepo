@@ -1,0 +1,16 @@
+#
+# CodeBuild file - builds and packages a SAM template.
+# ENV vars come from the codebuild execution at runtime.
+#
+---
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - pip install awscli --upgrade --user
+
+  build:
+    commands:
+      #TODO: insert any tests you wish to repeat (from PR) prior to syncing to S3.
+      - aws s3 sync templates s3://test-cloudformation-event-bucket #DO NOT PUT THIS UNDER POST_BUILD, ELSE IT WILL ALWAYS RUN EVEN IF BUILD FAILS.
