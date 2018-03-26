@@ -1,0 +1,7 @@
+Bucket: test-cloudformation-event-bucket
+StackTestLambdaArns:
+  - "arn1"
+  - "arn2"
+TemplateTestLambdaArns:
+  - "arn3"
+  - "arn4"

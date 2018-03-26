@@ -1,10 +1,9 @@
-
-
 .cache
 .history
 #intelliJ
 .idea
 .DS_Store
 templates-changed/*
+stacks-to-delete.txt
+templates-to-delete.txt
 
-packaged.yaml

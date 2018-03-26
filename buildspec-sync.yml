@@ -1,7 +1,4 @@
-#
-# CodeBuild file - builds and packages a SAM template.
-# ENV vars come from the codebuild execution at runtime.
-#
+
 ---
 version: 0.2
 
@@ -9,8 +6,17 @@ phases:
   install:
     commands:
       - pip install awscli --upgrade --user
+      - pip install gitpython
 
   build:
     commands:
-      #TODO: insert any tests you wish to repeat (from PR) prior to syncing to S3.
-      - aws s3 sync templates s3://test-cloudformation-event-bucket --size-only --delete #DO NOT PUT THIS UNDER POST_BUILD, ELSE IT WILL ALWAYS RUN EVEN IF BUILD FAILS.
+      # STEP1: FILTER FILES TO ONLY ONES MODIFIED FROM GIT - COPY THESE FILES TO A NEW DIR (templates-changed) UNDER THE SAME FOLDER STRUCTURE
+      - python automation-changed-files-filter.py
+
+      # STEP2: EXECUTE CF_NAG ON THAT NEW DIR - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
+
+      # STEP3: ANY ADDITIONAL RULES YOU WISH TO EXECUTE (as list of lambda arns - executed sync)
+      - python automation-lambda-tests.py
+
+      # STEP4: RUN SYNC: DOES STACK DELETES, TEMPLATE UPLOADS, AND FINALLY STACK UPLOADS.
+      - python automation-stack-sync.py
