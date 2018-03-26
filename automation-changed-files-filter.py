@@ -4,6 +4,8 @@ from git import Repo
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 repo = Repo(dir_path)
+os.makedirs("templates-sync", exist_ok=True)
+os.makedirs("stacks-sync", exist_ok=True)
 
 # Get the head commit + the prev commit
 a_commit = repo.commit('HEAD')
@@ -13,11 +15,11 @@ print ("Diffing commit:", a_commit, "to:", b_commit, " for the set of files we n
 
 def createChangeSets(items, basePath, deletedFile):
     for item in items:
-        print(item.a_path)
-
         if(item.deleted_file):
+            print("To delete: " + item.a_path)
             deletedFile.write(item.a_path + '\n')
         else:
+            print("To Create / Update: " + item.a_path)
             filePath = basePath + "/" + item.a_path
             os.makedirs(os.path.dirname(filePath), exist_ok=True)
             shutil.copy2(item.a_path, filePath)

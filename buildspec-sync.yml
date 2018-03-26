@@ -3,20 +3,15 @@
 version: 0.2
 
 phases:
-  install:
-    commands:
-      - pip install awscli --upgrade --user
-      - pip install gitpython
-
   build:
     commands:
-      # STEP1: FILTER FILES TO ONLY ONES MODIFIED FROM GIT - COPY THESE FILES TO A NEW DIR (templates-changed) UNDER THE SAME FOLDER STRUCTURE
-      - python automation-changed-files-filter.py
+      # STEP1: FILTER GIT HISTORY TO ONLY FILES WE NEED TO WORK WITH INTO DIFFERENT SETS
+      - python3.6 automation-changed-files-filter.py
 
-      # STEP2: EXECUTE CF_NAG ON THAT NEW DIR - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
+      # STEP2: EXECUTE CF_NAG ON THE TEMPLATES CHANGE SET DIRECTORY - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
+      - cfn_nag_scan --input-path templates-sync
 
-      # STEP3: ANY ADDITIONAL RULES YOU WISH TO EXECUTE (as list of lambda arns - executed sync)
-      - python automation-lambda-tests.py
+      # TODO: STEP3: Sync all change sets into staging s3 bucket under a git hash. Invoke test lambdas passing the paths in S3 to each stack. Test lambda's defined in config, allowing additional pre-create tests to be written ad-hoc
 
       # STEP4: RUN SYNC: DOES STACK DELETES, TEMPLATE UPLOADS, AND FINALLY STACK UPLOADS.
-      - python automation-stack-sync.py
+      - python3.6 automation-stack-sync.py
