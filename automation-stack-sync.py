@@ -6,16 +6,20 @@ with open("automation-config.yaml", 'r') as ymlconfig:
 
 s3bucket = config['Bucket']
 
-# DELETE OLD STACKS FIRST (raise exception on error)
-with open("to-delete.txt") as f:
-    content = f.readlines()
+def deleteStacks(path):
+    # DELETE OLD STACKS FIRST (raise exception on error)
+    with open(path) as f:
+        content = f.readlines()
 
-for item in content:
-    path = item.strip()
-    removed = run(["aws", "s3", "rm", "s3://" + s3bucket + "/" + path, "--dryrun"], check=True)
+    for item in content:
+        path = item.strip()
+        run(["aws", "s3", "rm", "s3://" + s3bucket + "/" + path], check=True)
+
+deleteStacks("stacks-to-delete.txt")
+deleteStacks("templates-to-delete.txt")
 
 #  SYNC TEMPLATES (raise exception on error)
-templateSync = run(["aws", "s3", "sync", "templates-changed/templates", "s3://" + s3bucket, "--size-only", "--delete", "--dryrun"], check=True)
+run(["aws", "s3", "sync", "templates-changed/templates", "s3://" + s3bucket, "--size-only", "--delete"], check=True)
 
 # SYNC STACKS (raise exception on error)
-stackSync = run(["aws", "s3", "sync", "stacks-changed/stacks", "s3://" + s3bucket, "--size-only", "--delete"], check=True)
+run(["aws", "s3", "sync", "stacks-changed/stacks", "s3://" + s3bucket, "--size-only", "--delete"], check=True)
