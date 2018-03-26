@@ -3,7 +3,8 @@
 #intelliJ
 .idea
 .DS_Store
-templates-changed/*
+stacks-sync
+templates-sync
 stacks-to-delete.txt
 templates-to-delete.txt
 
