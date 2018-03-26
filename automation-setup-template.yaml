@@ -1,0 +1,114 @@
+#
+# This template creates the necessary CodeBuild jobs for PR and Master building.
+#
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  CodeBuildJobNamePrefix:
+    Type: String
+    Default: "cloudformation-automation"
+  FailedBuildOnMasterSNSARN:
+    Description: SNS ARN for where notifications should go for when a build fails on Master.
+    Type: String
+  BuildImage:
+    Description: The docker path to the ECR Repo where the container can be found.
+    Type: String
+  GithubRepo:
+    Description: The HTTPS Path to the github repo of cloudformation templates
+    Type: String
+
+Resources:
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+      Policies:
+        - PolicyName: CodeBuildAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build:*'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build-pr'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build-pr:*'
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+
+  CodeBuildPRBuilder:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub '${CodeBuildJobNamePrefix}-build-pr'
+      Description: !Sub '${CodeBuildJobNamePrefix}-pr-build'
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref BuildImage
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Source:
+        Type: GITHUB
+        Auth:
+          Type: OAUTH
+        BuildSpec: buildspec-pr.yml
+        GitCloneDepth: 5
+        Location: !Ref GithubRepo
+      Triggers:
+        Webhook: true
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub '${CodeBuildJobNamePrefix}-build'
+      Description: !Sub '${CodeBuildJobNamePrefix}-pipeline-build'
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref BuildImage
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Source:
+        Type: GITHUB
+        Auth:
+          Type: OAUTH
+        BuildSpec: buildspec-sync.yml
+        GitCloneDepth: 5
+        Location: !Ref GithubRepo
+      Triggers:
+        Webhook: true
+        #TODO: END USER MUST GO EDIT CODEBUILD RESOURCE TO ADD A FILTER ON MASTER. NEED AWS TO ADD THIS PARAM TO CLOUDFORMATION!
+
+  EventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventPattern:
+        source:
+          - "aws.codebuild"
+        detail-type:
+          - "CodeBuild Build State Change"
+        detail:
+          build-status:
+            - FAILED
+            - IN_PROGRESS
+            - STOPPED
+            - SUCCEEDED
+          project-name:
+            - !Ref CodeBuildProject
+      State: ENABLED
+      Targets:
+        - Arn: !Ref FailedBuildOnMasterSNSARN
+          Id: "sns-notify"
