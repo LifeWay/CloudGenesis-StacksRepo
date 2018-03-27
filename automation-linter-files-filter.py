@@ -17,7 +17,7 @@ os.makedirs("templates-sync/templates", exist_ok=True)
 os.makedirs("stacks-sync/stacks", exist_ok=True)
 
 def createChangeSets(dir, basePath):
-    s3sync = run(["aws", "s3", "sync", dir, "s3://test-cloudformation-event-bucket", "--dryrun", "--profile=sandboxadmin"], stdout=PIPE, check=True)
+    s3sync = run(["aws", "s3", "sync", dir, "s3://test-cloudformation-event-bucket", "--dryrun"], stdout=PIPE, check=True)
     items = s3sync.stdout.decode('UTF-8').split("\n")
     for line in items:
         if line.startswith("(dryrun) upload: "):
