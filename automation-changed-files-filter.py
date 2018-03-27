@@ -16,8 +16,12 @@ print ("Diffing commit:", a_commit, "to:", b_commit, " for the set of files we n
 def createChangeSets(items, basePath, deletedFile):
     for item in items:
         if(item.deleted_file):
-            print("To delete: " + item.a_path)
+            print("To Delete: " + item.a_path)
             deletedFile.write(item.a_path + '\n')
+        elif(item.renamed_file):
+            print("To Delete (Renamed): " + item.a_path)
+            deletedFile.write(item.a_path + '\n')
+            print("To Create (Renamed): " + item.b_path)
         else:
             print("To Create / Update: " + item.a_path)
             filePath = basePath + "/" + item.a_path
