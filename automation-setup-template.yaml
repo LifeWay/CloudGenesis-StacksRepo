@@ -111,6 +111,10 @@ Resources:
                   - 's3:GetObject'
                   - 's3:GetObjectVersion'
                   - 's3:PutObject'
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:ValidateTemplate'
+                Resource: "*"
 
   #
   # CODE BUILD
