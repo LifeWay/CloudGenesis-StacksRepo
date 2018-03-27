@@ -4,10 +4,10 @@ version: 0.2
 phases:
   build:
     commands:
-      # STEP1: FILTER FILES TO ONLY ONES MODIFIED FROM GIT - COPY THESE FILES TO A NEW DIR (templates-changed) UNDER THE SAME FOLDER STRUCTURE
-      - python3.6 automation-changed-files-filter.py
+      # STEP1: FILTER GIT HISTORY TO ONLY FILES WE NEED TO WORK WITH INTO DIFFERENT SETS, RUN CF VALIDATOR
+      - python3.6 automation-linter-files-filter.py
 
-      # STEP2: EXECUTE CF_NAG ON THAT NEW DIR - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
+      # STEP2: EXECUTE CF_NAG ON THE TEMPLATES CHANGE SET DIRECTORY - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
       - cfn_nag_scan --input-path templates-sync
 
-      # TODO: STEP3: Sync all change sets into staging s3 bucket under a git hash. Invoke test lambdas passing the paths in S3 to each stack. Test lambda's defined in config, allowing additional pre-create tests to be written ad-hoc
+      # TODO: STEP3: Sync all change sets into staging s3 bucket under a unique hash. Invoke test lambdas passing the paths in S3 to each stack. Test lambda's defined in config, allowing additional pre-create tests to be written ad-hoc

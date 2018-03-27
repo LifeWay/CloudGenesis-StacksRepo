@@ -5,7 +5,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  CodeBuildJobNamePrefix:
+  StackResourcePrefix:
     Type: String
     Default: "cloudformation-automation"
   FailedBuildOnMasterSNSARN:
@@ -14,14 +14,60 @@ Parameters:
   BuildImage:
     Description: The docker path to the ECR Repo where the container can be found.
     Type: String
-  GithubRepo:
-    Description: The HTTPS Path to the github repo of cloudformation templates
+  GithubRepoName:
+    Description: The name of the repo (As seen on GitHub.com)
     Type: String
+  GithubRepoOwner:
+    Description: The owner of the repo (As seen on Github.com)
+    Type: String
+  GitHubToken:
+    Type: String
+    NoEcho: true
+    Description: GitHub repository OAuth token - this is a GitHub Personal Access Token. All Git write actions will appear as though they happened by the user attached to this token.
   S3BucketName:
-    Description: The S3 Bucket the CodeBuild job will sync files to.
+    Description: The S3 Bucket the CodeBuild job will sync files to. Should be the same in your automation-config.yaml file
     Type: String
 
 Resources:
+
+  #
+  # ROLES
+  #
+  PipelineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: CodePipelineAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - 'codebuild:StartBuild'
+                  - 'codebuild:BatchGetBuilds'
+                Effect: Allow
+                Resource:
+                  - !GetAtt CodeBuildProject.Arn
+              - Action:
+                  - 's3:*'
+                Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:s3:::${BuildArtifactsBucket}/*'
+              - Action:
+                  - 'iam:PassRole'
+                Effect: Allow
+                Resource:
+                  - !GetAtt CodeBuildServiceRole.Arn
+
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -41,10 +87,10 @@ Resources:
             Statement:
               - Effect: Allow
                 Resource:
-                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build'
-                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build:*'
-                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build-pr'
-                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildJobNamePrefix}-build-pr:*'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${StackResourcePrefix}-build'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${StackResourcePrefix}-build:*'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${StackResourcePrefix}-build-pr'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${StackResourcePrefix}-build-pr:*'
                 Action:
                   - 'logs:CreateLogGroup'
                   - 'logs:CreateLogStream'
@@ -58,12 +104,22 @@ Resources:
                   - 's3:DeleteObject'
                   - 's3:GetObject'
                   - 's3:ListBucket'
+              - Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:s3:::${BuildArtifactsBucket}/*'
+                Action:
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                  - 's3:PutObject'
 
+  #
+  # CODE BUILD
+  #
   CodeBuildPRBuilder:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: !Sub '${CodeBuildJobNamePrefix}-build-pr'
-      Description: !Sub '${CodeBuildJobNamePrefix}-pr-build'
+      Name: !Sub '${StackResourcePrefix}-build-pr'
+      Description: !Sub '${StackResourcePrefix}-pr-build'
       Artifacts:
         Type: NO_ARTIFACTS
       Environment:
@@ -77,32 +133,25 @@ Resources:
           Type: OAUTH
         BuildSpec: buildspec-pr.yml
         GitCloneDepth: 5
-        Location: !Ref GithubRepo
+        Location: !Sub "https://github.com/${GithubRepoOwner}/${GithubRepoName}.git"
       Triggers:
         Webhook: true
 
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: !Sub '${CodeBuildJobNamePrefix}-build'
-      Description: !Sub '${CodeBuildJobNamePrefix}-pipeline-build'
+      Name: !Sub '${StackResourcePrefix}-build'
+      Description: !Sub '${StackResourcePrefix}-pipeline-build'
       Artifacts:
-        Type: NO_ARTIFACTS
+        Type: CODEPIPELINE
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
         Image: !Ref BuildImage
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
       Source:
-        Type: GITHUB
-        Auth:
-          Type: OAUTH
+        Type: CODEPIPELINE
         BuildSpec: buildspec-sync.yml
-        GitCloneDepth: 5
-        Location: !Ref GithubRepo
-      Triggers:
-        Webhook: true
-        #TODO: END USER MUST GO EDIT CODEBUILD RESOURCE TO ADD A FILTER ON MASTER. NEED AWS TO ADD THIS PARAM TO CLOUDFORMATION!
 
   EventRule:
     Type: "AWS::Events::Rule"
@@ -124,3 +173,49 @@ Resources:
       Targets:
         - Arn: !Ref FailedBuildOnMasterSNSARN
           Id: "sns-notify"
+
+  #
+  # CODE PIPELINE
+  #
+  BuildArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${StackResourcePrefix}-artifacts"
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref BuildArtifactsBucket
+        Type: S3
+      Name: !Sub "${StackResourcePrefix}-pipeline"
+      RoleArn: !GetAtt PipelineExecutionRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: GitHubRepo
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              Configuration:
+                Owner: !Ref GithubRepoOwner
+                Repo: !Ref GithubRepoName
+                Branch: master
+                OAuthToken: !Ref GitHubToken
+              OutputArtifacts:
+                - Name: SourceZip
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: CodeBuild
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              InputArtifacts:
+                - Name: SourceZip
