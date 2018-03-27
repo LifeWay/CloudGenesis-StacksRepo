@@ -19,7 +19,7 @@ deleteStacks("stacks-to-delete.txt")
 deleteStacks("templates-to-delete.txt")
 
 #  SYNC TEMPLATES (raise exception on error)
-run(["aws", "s3", "sync", "templates-sync", "s3://" + s3bucket, "--size-only", "--delete"], check=True)
+run(["aws", "s3", "sync", "templates-sync/templates", "s3://" + s3bucket + "/templates", "--size-only", "--delete"], check=True)
 
 # SYNC STACKS (raise exception on error)
-run(["aws", "s3", "sync", "stacks-sync", "s3://" + s3bucket, "--size-only", "--delete"], check=True)
+run(["aws", "s3", "sync", "stacks-sync/stacks", "s3://" + s3bucket + "/stacks", "--size-only", "--delete"], check=True)
