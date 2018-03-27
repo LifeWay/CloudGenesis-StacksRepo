@@ -17,6 +17,9 @@ Parameters:
   GithubRepo:
     Description: The HTTPS Path to the github repo of cloudformation templates
     Type: String
+  S3BucketName:
+    Description: The S3 Bucket the CodeBuild job will sync files to.
+    Type: String
 
 Resources:
   CodeBuildServiceRole:
@@ -46,6 +49,12 @@ Resources:
                   - 'logs:CreateLogGroup'
                   - 'logs:CreateLogStream'
                   - 'logs:PutLogEvents'
+              - Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                Action:
+                  - 's3:PutObject'
+                  - 's3:DeleteObject'
 
   CodeBuildPRBuilder:
     Type: AWS::CodeBuild::Project
