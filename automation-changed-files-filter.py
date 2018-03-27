@@ -4,8 +4,8 @@ from git import Repo
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 repo = Repo(dir_path)
-os.makedirs("templates-sync", exist_ok=True)
-os.makedirs("stacks-sync", exist_ok=True)
+os.makedirs("templates-sync/templates", exist_ok=True)
+os.makedirs("stacks-sync/stacks", exist_ok=True)
 
 # Get the head commit + the prev commit
 a_commit = repo.commit('HEAD')
