@@ -8,11 +8,8 @@ Parameters:
   StackResourcePrefix:
     Type: String
     Default: "cloudformation-automation"
-  FailedBuildOnMasterSNSARN:
-    Description: SNS ARN for where notifications should go for when a build fails on Master.
-    Type: String
   BuildImage:
-    Description: The docker path to the ECR Repo where the container can be found.
+    Description: The docker path to the ECR Repo where the container can be found. #TODO: IAM / RESOURCE LEVEL PERMS TO ECR IMAGE
     Type: String
   GithubRepoName:
     Description: The name of the repo (As seen on GitHub.com)
@@ -24,8 +21,8 @@ Parameters:
     Type: String
     NoEcho: true
     Description: GitHub repository OAuth token - this is a GitHub Personal Access Token. All Git write actions will appear as though they happened by the user attached to this token.
-  S3BucketName:
-    Description: The S3 Bucket the CodeBuild job will sync files to. Should be the same in your automation-config.yaml file
+  AutomationStackName:
+    Description: The Stack Name for the automation stack that was created specifically for this Git Repo.
     Type: String
 
 Resources:
@@ -97,8 +94,14 @@ Resources:
                   - 'logs:PutLogEvents'
               - Effect: Allow
                 Resource:
-                  - !Sub 'arn:aws:s3:::${S3BucketName}/*'
-                  - !Sub 'arn:aws:s3:::${S3BucketName}'
+                  - !Join
+                    - ""
+                    - - "arn:aws:s3:::"
+                      - Fn::ImportValue:
+                          !Sub "CloudFormationDeployer:${AutomationStackName}:S3Bucket"
+                      - "/*"
+                  - Fn::ImportValue:
+                      !Sub "CloudFormationDeployer:${AutomationStackName}:S3BucketArn"
                 Action:
                   - 's3:PutObject'
                   - 's3:DeleteObject'
@@ -130,6 +133,11 @@ Resources:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
         Image: !Ref BuildImage
+        EnvironmentVariables:
+          - Name: S3_BUCKET_NAME
+            Value:
+              Fn::ImportValue: !Sub "CloudFormationDeployer:${AutomationStackName}:S3Bucket"
+            Type: PLAINTEXT
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
       Source:
         Type: GITHUB
@@ -152,6 +160,11 @@ Resources:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
         Image: !Ref BuildImage
+        EnvironmentVariables:
+          - Name: S3_BUCKET_NAME
+            Value:
+              Fn::ImportValue: !Sub "CloudFormationDeployer:${AutomationStackName}:S3Bucket"
+            Type: PLAINTEXT
       ServiceRole: !GetAtt CodeBuildServiceRole.Arn
       Source:
         Type: CODEPIPELINE
@@ -175,7 +188,9 @@ Resources:
             - !Ref CodeBuildProject
       State: ENABLED
       Targets:
-        - Arn: !Ref FailedBuildOnMasterSNSARN
+        - Arn:
+            Fn::ImportValue:
+              !Sub "CloudFormationDeployer:${AutomationStackName}:BuildStatusSNSArn"
           Id: "sns-notify"
 
   #
@@ -183,8 +198,6 @@ Resources:
   #
   BuildArtifactsBucket:
     Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${StackResourcePrefix}-artifacts"
 
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
