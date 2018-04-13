@@ -11,6 +11,9 @@ RUN python3.6 -m pip install awscli --upgrade
 
 RUN python3.6 -m pip install gitpython
 
+# Do we want to run unit tests?
+# RUN python3.6 -m pip install -U pytest
+
 RUN gem install cfn-nag
 
 RUN yum clean all
