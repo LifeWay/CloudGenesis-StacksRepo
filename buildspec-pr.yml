@@ -1,13 +1,24 @@
 
 ---
 version: 0.2
+environment_variabls:
+  plaintext:
+    AWS_DEFAULT_REGION: "us-east-1"
 phases:
+  install:
+    commands:
+      # Install the PyTest unit testing framework
+      - python3.6 -m pip install -U pytest
+  pre_build:
+    commands:
+      # Run the unit tests on the automation scripts before we use them
+      - pytest automation-scripts/
   build:
     commands:
       # STEP1: FILTER GIT HISTORY TO ONLY FILES WE NEED TO WORK WITH INTO DIFFERENT SETS, RUN CF VALIDATOR
-      - python3.6 automation-linter-files-filter.py
+      - python3.6 automation-scripts/automation-linter-files-filter.py templates $S3_BUCKET_NAME templates
 
       # STEP2: EXECUTE CF_NAG ON THE TEMPLATES CHANGE SET DIRECTORY - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
-      - cfn_nag_scan --input-path templates-sync
+      - cfn_nag_scan --input-path templates
 
       # TODO: STEP3: Sync all change sets into staging s3 bucket under a unique hash. Invoke test lambdas passing the paths in S3 to each stack. Test lambda's defined in config, allowing additional pre-create tests to be written ad-hoc

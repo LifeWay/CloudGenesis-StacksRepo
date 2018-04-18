@@ -1,12 +1,18 @@
 class S3Diff:
 
+    """Exposes the difference with semantics between two file sets"""
+
     @staticmethod
     def get_local_files_changed(local_file_set, s3_file_set):
+
+        """Simple function that adds semantics to the set.difference call"""
 
         return local_file_set.difference(s3_file_set)
 
     @staticmethod
     def get_local_files_removed(local_file_set, s3_file_set):
+
+        """Simple function that adds semantics to the set.difference call"""
 
         return s3_file_set.difference(local_file_set)
 

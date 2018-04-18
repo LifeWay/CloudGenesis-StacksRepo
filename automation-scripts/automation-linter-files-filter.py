@@ -6,12 +6,21 @@ being changed so that they can be linted and tested prior to launch without re-t
 """
 import os
 import argparse
-from boto.exception import BotoServerError
-from boto.cloudformation import connect_to_region
-from boto.cloudformation.connection import CloudFormationConnection
+import boto3
+from botocore.exceptions import ClientError
 
 
 def get_changed_files(local_path, s3_bucket, s3_path):
+
+    """
+    Gets the list of local files that have changed in relation to the specified path into the S3 bucket
+
+    @:param local_path: The path to the local directory to compare with the files on S3
+    @:param s3_bucket: The bucket on S3 to use for comparision
+    @:param s3_path: The path to the s3 "directory" to compare with the local files
+
+    @:return: The list of changed files
+    """
 
     from s3_diff import S3Diff
     from file_set_loader import FileSetLoader
@@ -23,22 +32,44 @@ def get_changed_files(local_path, s3_bucket, s3_path):
 
 def validate_templates(file_list):
 
+    """
+    Validates the files in file_list as AWS CloudFormation templates
+
+    :param file_list: The list of files to validate
+    :return: Whether all files are valid templates or not
+    """
+
     valid = True
-    conn = connect_to_region(CloudFormationConnection.DefaultRegionName)
+
+    client = boto3.client("cloudformation")
 
     for file in file_list:
+
         with open(file, "r") as file_data:
+
             try:
-                conn.validate_template(template_body = file_data.read())
+
+                client.validate_template(TemplateBody = file_data.read())
                 print(f"{file} => Valid")
-            except BotoServerError as error:
-                print(f"{file} => {error.message}")
+
+            except ClientError as error:
+
+                print(f"{file} => {error}")
                 valid = False
 
     return valid
 
 
 def validate_changed_templates(local_path, s3_bucket, s3_path):
+
+    """
+    Gets the list of changed local files in relation to a path into an S3 bucket and validates them as CloudFormation templates.
+
+    :param local_path: The path to the local directory to compare with the files on S3
+    :param s3_bucket: The bucket on S3 to use for comparision
+    :param s3_path: The path to the s3 "directory" to compare with the local files
+    :return: Whether all files are valid templates or not
+    """
 
     changed_files = get_changed_files(local_path, s3_bucket, s3_path)
 
@@ -53,6 +84,8 @@ def validate_changed_templates(local_path, s3_bucket, s3_path):
 
 
 if __name__ == "__main__":
+
+    """Parses command-line parameters and returns 0 if all changed files are valid else 1"""
 
     parser = argparse.ArgumentParser()
     parser.add_argument("local_path", help = "The path to the local directory to validate")

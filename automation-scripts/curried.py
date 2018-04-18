@@ -1,17 +1,34 @@
 from functools import partial
 from inspect import signature
 
-
 def curried(func):
+
+    """
+    A decorator that converts a multi-parameter function into a set of single-parameter functions
+
+    :param func: The function to convert
+    :return: A curried version of the specified function
+    """
 
     def inner(arg):
 
+        """
+        The inner function that curries the first parameter of a function to that function
+
+        :param arg: The parameter to curry to this function
+        :return: The function with the parameter curried to it
+        """
+
+        # Query for the number of parameters for this function
         if len(signature(func).parameters) == 1:
 
+            # Simply call single parameter functions
             return func(arg)
 
         else:
 
+            # Curry the first parameter to the specified function with the partial function
+            # and recurse for the subsequent parameters, if any
             return curried(partial(func, arg))
 
     return inner
