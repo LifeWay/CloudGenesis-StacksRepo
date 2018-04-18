@@ -53,4 +53,4 @@ WARNING: this process does not work well for Secret params (e.g. `NoEcho`). Thos
 ## Deploying the CodeBuild / CodePipeline Jobs:
 * Use the `Dockerfile` to build an AWS ECR image for the CodeBuild job - pick your own repo.
 * Deploy the `templates/automation-setup-template.yaml` to manage a given repo.
-  * ProTip: for child repos that have more granular permissions (e.g. no IAM), have a master repo that does IAM deploys also manage the setup for others. 
+  * ProTip: for child repos that have more granular permissions (e.g. no IAM), have a master repo that does IAM deploys also manage the setup for others. HOWEVER, because that template needs to have a github personal access token, until secure SSM parameters are supported by AWS this template should be launched by hand.  
