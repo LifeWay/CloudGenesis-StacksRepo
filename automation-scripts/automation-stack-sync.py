@@ -29,6 +29,9 @@ def sync_changes(local_path, s3_bucket, s3_path):
     files_to_update = S3Diff.get_local_files_changed(local_set, s3_set)
     files_to_remove = S3Diff.get_local_files_removed(local_set, s3_set)
 
+    print ("Stacks to Delete: ", set(map(lambda i: i.file, files_to_remove)))
+    print ("Stacks to Update: ", set(map(lambda i: i.file, files_to_update)))
+
     S3Updater.delete_files(map(lambda item: s3_path + "/" + item.file, files_to_remove), s3_bucket)
     S3Updater.upload_files(map(lambda item: item.file, files_to_update), local_path, s3_bucket, s3_path)
 
