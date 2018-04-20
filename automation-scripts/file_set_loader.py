@@ -191,7 +191,7 @@ def get_prefixed_keys_from_bucket(s3, bucket, s3_path):
 
         response = s3.list_objects_v2(**kwargs)
 
-        for key in response["Contents"]:
+        for key in response.get("Contents", []):
 
             yield Struct(name = key["Key"], etag = key["ETag"])
 
@@ -421,3 +421,24 @@ class PyTests:
 
         assert keys == expected_key_list
 
+
+    @staticmethod
+    def test_get_prefixed_keys_from_bucket_handles_empty_contents():
+
+        expected_bucket = "bucket"
+        expected_prefix = "stacks"
+        expected_key_list = []
+
+        # define my own implementation of list
+        def hijacked_list(**kwargs):
+            assert kwargs["Bucket"] == expected_bucket
+            assert kwargs["Prefix"] == expected_prefix
+            return {}
+
+        s3 = get_s3_client()
+        s3.list_objects_v2 = hijacked_list  # override Bucket's list function with my implementation
+
+        # should call my list instead of the original
+        keys = list(get_prefixed_keys_from_bucket(s3, expected_bucket, expected_prefix))
+
+        assert keys == expected_key_list
