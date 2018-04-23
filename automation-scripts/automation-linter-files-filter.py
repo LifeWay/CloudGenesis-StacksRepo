@@ -47,7 +47,7 @@ def copy_files_to_dir(source_dir, dest_dir, file_list):
         source_file = os.path.join(source_dir, file.file)
         dest_file = os.path.join(dest_dir, file.file)
 
-        os.makedirs(os.path.dirname(dest_file))
+        os.makedirs(os.path.dirname(dest_file), exist_ok = True)
 
         shutil.copy(source_file, dest_file)
 
