@@ -19,6 +19,6 @@ phases:
       - python3.6 automation-scripts/automation-linter-files-filter.py templates $S3_BUCKET_NAME templates
 
       # STEP2: EXECUTE CF_NAG ON THE TEMPLATES CHANGE SET DIRECTORY - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
-      - cfn_nag_scan --input-path templates
+      - cfn_nag_scan --input-path templates-changed
 
       # TODO: STEP3: Sync all change sets into staging s3 bucket under a unique hash. Invoke test lambdas passing the paths in S3 to each stack. Test lambda's defined in config, allowing additional pre-create tests to be written ad-hoc
