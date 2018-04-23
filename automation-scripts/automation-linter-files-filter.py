@@ -5,8 +5,9 @@ This script compares what is in the S3 bucket to what came over from the git rep
 being changed so that they can be linted and tested prior to launch without re-testing / re-linting the entire repo.
 """
 import os
-import argparse
 import boto3
+import shutil
+import argparse
 from botocore.exceptions import ClientError
 
 
@@ -28,6 +29,27 @@ def get_changed_files(local_path, s3_bucket, s3_path):
     (local_set, s3_set) = FileSetLoader.get_file_sets(local_path, s3_bucket, s3_path)
 
     return S3Diff.get_local_files_changed(local_set, s3_set)
+
+
+def copy_files_to_dir(source_dir, dest_dir, file_list):
+
+    """
+    Copies file from one directory to another.
+
+    :param source_dir: The source directory
+    :param dest_dir: The destination directory
+    :param file_list: List of Item objects representing the files
+    :return:
+    """
+
+    for file in file_list:
+
+        source_file = os.path.join(source_dir, file.file)
+        dest_file = os.path.join(dest_dir, file.file)
+
+        os.makedirs(os.path.dirname(dest_file), exist_ok = True)
+
+        shutil.copy(source_file, dest_file)
 
 
 def validate_templates(file_list):
@@ -73,7 +95,7 @@ def validate_changed_templates(local_path, s3_bucket, s3_path):
 
     changed_files = get_changed_files(local_path, s3_bucket, s3_path)
 
-    return validate_templates  \
+    valid = validate_templates  \
     (
         map
         (
@@ -81,6 +103,19 @@ def validate_changed_templates(local_path, s3_bucket, s3_path):
             changed_files
         )
     )
+
+    if valid:
+
+        try:
+
+            copy_files_to_dir(local_path, local_path + "-changed", changed_files)
+
+        except Exception as error:
+
+            print(f"Copying files to temp directory failed => {error}")
+            valid = False
+
+    return valid
 
 
 if __name__ == "__main__":
