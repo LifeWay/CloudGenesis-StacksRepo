@@ -42,6 +42,9 @@ def copy_files_to_dir(source_dir, dest_dir, file_list):
     :return:
     """
 
+    # Make sure the dest directory at least exists, so cfn_nag won't blow up
+    os.makedirs(dest_dir, exist_ok = True)
+
     for file in file_list:
 
         source_file = os.path.join(source_dir, file.file)
