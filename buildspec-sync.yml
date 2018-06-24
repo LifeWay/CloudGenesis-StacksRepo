@@ -15,14 +15,20 @@ phases:
       - pytest automation-scripts/
   build:
     commands:
-      # STEP1: FILTER GIT HISTORY TO ONLY FILES WE NEED TO WORK WITH INTO DIFFERENT SETS, RUN CF VALIDATOR
+      # Step 1: Filter Git history to only the files we need to work with into different sets.
+      # Finally, run the AWS CloudFormation Validator against only the templates that are being changed. The validator
+      # is still ran even on a build as any template that fails the validator wouldn't successfully launch here anyways
       - python3.6 automation-scripts/automation-linter-files-filter.py templates $S3_BUCKET_NAME templates
 
-      # STEP2: EXECUTE CF_NAG ON THE TEMPLATES CHANGE SET DIRECTORY - CF NAG WILL GO THROUGH THE DIRECTORY RECURSIVELY.
-      - cfn_nag_scan --input-path templates-changed
+      # Step 2: Any linters or validators that you wish to run after the standard CloudFormation validator was ran in
+      # Step 1 can be applied here. Please note that the template files that were modified as part of this PR are
+      # now in a directory called "templates-changed". You do not need to re-lint or re-validate the entire templates
+      # directory. Additionally, as this is the SYNC job and not the PR job, only run validators and linters here that 
+      # you wish to fail the build all together if they don't pass. 
 
-      # TODO: STEP3: Sync all change sets into staging s3 bucket under a unique hash. Invoke test lambdas passing the paths in S3 to each stack. Test lambda's defined in config, allowing additional pre-create tests to be written ad-hoc
 
-      # STEP4: RUN SYNC: DOES STACK DELETES, TEMPLATE UPLOADS, AND FINALLY STACK UPLOADS.
+      # STEP 3: run the sync: The order of these operations is imporant. Templates MUST be synced before stacks.
+      # During each run, files are first deleted from s3 if they were removed, then new and updated files are uploaded
+      # to s3.
       - python3.6 automation-scripts/automation-stack-sync.py templates $S3_BUCKET_NAME templates
       - python3.6 automation-scripts/automation-stack-sync.py stacks $S3_BUCKET_NAME stacks
