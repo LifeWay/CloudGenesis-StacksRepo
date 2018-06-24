@@ -93,3 +93,13 @@ This does not need to be a literal change to the stack values, just the file its
 comment on a stack is all that is needed to trigger a stack to update. GitFormation ALWAYS passes the template on every 
 update (never re-uses existing template). So if a template was updated since the last time the stack was updated, then 
 the stack will receive an udpate just from your YAML comment.
+
+
+
+### ~~ FIRST TIME SETUP ~~
+The PR and sync scripts for the templates directory are not tolerant for files other than valid CloudFormation 
+templates. Therefore, if you clone this repo for your own private use, you **MUST** remove the `.gitkeep` file in the 
+templates directory. Only valid cloudformation templates are allowed in the templates directoy.
+
+You may check in whatever kind of files you wish into the `stacks` directory, as the S3 eventing setup on GitFormation 
+itself will ignore any file name that does not end in `.yaml`
