@@ -6,9 +6,9 @@
 #
 # You will need to push this docker image to the ECR repository after you build it.
 # 
-# NOTE: GitFormation's project repo contains a `template-ecr-buildimage.yaml` setup file that creates the ECR repo for
+# NOTE: CloudGenesis' project repo contains a `template-ecr-buildimage.yaml` setup file that creates the ECR repo for
 # you. You must either use that template to create the ECR repo OR you must create your own CloudFormation template that
-# creates an ECR. The GitFormation SAM stack requires you to pass the ECR Repo name into the stack.
+# creates an ECR. The CloudGenesis SAM stack requires you to pass the ECR Repo name into the stack.
 FROM amazonlinux:latest
 
 MAINTAINER Ryan Means <ryan.means@lifeway.com>

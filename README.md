@@ -1,7 +1,7 @@
-# GitFormation: GitOps Repo of Stacks and Templates
+# CloudGenesis: GitOps Repo of Stacks and Templates
 
-When using GitFormation, obviously you have to have a Git repo to host your Stack and Template files. This repo consists
-of the minimum files necessary to ensure that when GitFormation runs the `buildspec-pr.yaml` and `buildspec-sync.yaml`
+When using CloudGenesis, obviously you have to have a Git repo to host your Stack and Template files. This repo consists
+of the minimum files necessary to ensure that when CloudGenesis runs the `buildspec-pr.yaml` and `buildspec-sync.yaml`
 files that your templates will be validated (PR) and on merge, your templates and stacks will be sync'd with your 
 S3 bucket.
 
@@ -19,9 +19,9 @@ There is two main directories: `stacks` and `templates`.
 ### Templates:
 These are your literal cloud formation templates. Nothing special. Please be aware that downstream automation does not 
 do any package and deploy steps. So this automation is not well suited for Serverless Transforms where the CodeUri is 
-referring to a local path (vs an S3 path which would not need SAM packaging). HOWEVER, GitFormation *DOES* create change
-sets with each deploy - so you are free to use SAM and other transforms in your stacks so long as the template does not
-to be run through the aws cli packager first (e.g. SAM templates with relative CodeUri's).
+referring to a local path (vs an S3 path which would not need SAM packaging). HOWEVER, CloudGenesis *DOES* create change
+sets with each deploy - so you are free to use SAM and other transforms in your stacks so long as the template does not 
+have to be run through the aws cli packager first (e.g. SAM templates with relative CodeUri's).
 
 ### Stacks:
 Stacks are the definition of the various parameters, tags, and the template needed to actually launch one of your templates 
@@ -54,9 +54,9 @@ CloudFormation does not yet support SSM values as a parameter where that value i
 quite a headache when practicing GitOps for Cloudformation as you MUST be able to pass the secret paramater in source 
 somehow, otherwise you would have to revert back to launching the stack by hand.
 
-GitFormation handles this issue by using SSM directly. What GitFormation does is you grant GitFormation itself access to 
-read secrets stored at a given SSM path prefix (e.g. `/gitformation/secrets/`). GitFormation when it sees in the stack 
-yaml a paramter by the type of `SSM` uses the value field as the key to look up in SSM. GitFormation then reads your 
+CloudGenesis handles this issue by using SSM directly. What CloudGenesis does is you grant CloudGenesis itself access to 
+read secrets stored at a given SSM path prefix (e.g. `/cloudgenesis/secrets/`). CloudGenesis when it sees in the stack 
+yaml a paramter by the type of `SSM` uses the value field as the key to look up in SSM. CloudGenesis then reads your 
 secret and passes the value of that secret to your stack parameter. 
 
 *WARNING* Because this is not a native CloudFormation feature, that means that the value of your secret gets passed to 
@@ -90,7 +90,7 @@ Parameters:
 Commonly, you will update a template to add new resources, modify a resource etc. Only updating a teplate will have no 
 effect on your existing stacks using that template. To have a stack update, you MUST update the stack file in some way. 
 This does not need to be a literal change to the stack values, just the file itself must change. So a simple YAML 
-comment on a stack is all that is needed to trigger a stack to update. GitFormation ALWAYS passes the template on every 
+comment on a stack is all that is needed to trigger a stack to update. CloudGenesis ALWAYS passes the template on every 
 update (never re-uses existing template). So if a template was updated since the last time the stack was updated, then 
 the stack will receive an udpate just from your YAML comment.
 
@@ -101,5 +101,5 @@ The PR and sync scripts for the templates directory are not tolerant for files o
 templates. Therefore, if you clone this repo for your own private use, you **MUST** remove the `.gitkeep` file in the 
 templates directory. Only valid cloudformation templates are allowed in the templates directoy.
 
-You may check in whatever kind of files you wish into the `stacks` directory, as the S3 eventing setup on GitFormation 
+You may check in whatever kind of files you wish into the `stacks` directory, as the S3 eventing setup on CloudGenesis 
 itself will ignore any file name that does not end in `.yaml`

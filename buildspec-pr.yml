@@ -19,7 +19,7 @@ phases:
       # Finally, run the AWS CloudFormation Validator against only the templates that are being changed in this PR.
       - python3.6 automation-scripts/automation-linter-files-filter.py templates $S3_BUCKET_NAME templates
 
-      # Step 2: Any linters or validators that you wish to run after the standard CloudFormation validator was ran in
+      # Step 2: Any linters or validators that you wish to run after the standard CloudFormation validator was run in
       # Step 1 can be applied here. Please note that the template files that were modified as part of this PR are
       # now in a directory called "templates-changed". You do not need to re-lint or re-validate the entire templates
       # directory.

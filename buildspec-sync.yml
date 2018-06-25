@@ -17,10 +17,10 @@ phases:
     commands:
       # Step 1: Filter Git history to only the files we need to work with into different sets.
       # Finally, run the AWS CloudFormation Validator against only the templates that are being changed. The validator
-      # is still ran even on a build as any template that fails the validator wouldn't successfully launch here anyways
+      # is still run even on a build as any template that fails the validator wouldn't successfully launch here anyways
       - python3.6 automation-scripts/automation-linter-files-filter.py templates $S3_BUCKET_NAME templates
 
-      # Step 2: Any linters or validators that you wish to run after the standard CloudFormation validator was ran in
+      # Step 2: Any linters or validators that you wish to run after the standard CloudFormation validator was run in
       # Step 1 can be applied here. Please note that the template files that were modified as part of this PR are
       # now in a directory called "templates-changed". You do not need to re-lint or re-validate the entire templates
       # directory. Additionally, as this is the SYNC job and not the PR job, only run validators and linters here that 
